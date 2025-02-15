@@ -35,7 +35,7 @@ fi
 
 # Download and install the actual script
 echo "[✔] Downloading LLM Command Handler..."
-curl -sS -o "$INSTALL_PATH" "https://github.com/tscherrie/LLShell/llm_command_handler.sh"
+curl -sS -o "$INSTALL_PATH" "https://github.com/tscherrie/LLShell/blob/main/llm_command_handler.sh"
 chmod +x "$INSTALL_PATH"
 
 # Add source to shell configs
