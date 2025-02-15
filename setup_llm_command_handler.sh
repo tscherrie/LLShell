@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Determine the current shell
-SHELL_NAME=$(basename "$(ps -p $$ -o comm=)")
+SHELL_NAME=$(basename "$SHELL")
 
 # Define script paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
