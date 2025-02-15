@@ -11,16 +11,24 @@ FISH_SCRIPT_PATH="$HOME/.config/fish/functions/llm_command_handler.fish"
 # Ensure necessary directories exist for Fish
 mkdir -p "$HOME/.config/fish/functions/"
 
-# Ask for OpenAI API Key
-read -p "Enter your OpenAI API Key: " OPENAI_API_KEY
+# Check if OPENAI_API_KEY is already set
+if [[ -z "$OPENAI_API_KEY" ]]; then
+    read -p "Enter your OpenAI API Key: " OPENAI_API_KEY
+else
+    echo "[✔] Using existing OPENAI_API_KEY."
+fi
 
 # Store environment variables persistently
 if [[ "$SHELL_NAME" == "zsh" || "$SHELL_NAME" == "bash" ]]; then
     ENV_FILE="$HOME/.${SHELL_NAME}rc"
-    echo "export OPENAI_API_KEY=\"$OPENAI_API_KEY\"" >> "$ENV_FILE"
+    if ! grep -q "export OPENAI_API_KEY" "$ENV_FILE"; then
+        echo "export OPENAI_API_KEY=\"$OPENAI_API_KEY\"" >> "$ENV_FILE"
+    fi
 elif [[ "$SHELL_NAME" == "fish" ]]; then
     ENV_FILE="$HOME/.config/fish/config.fish"
-    echo "set -x OPENAI_API_KEY \"$OPENAI_API_KEY\"" >> "$ENV_FILE"
+    if ! grep -q "set -x OPENAI_API_KEY" "$ENV_FILE"; then
+        echo "set -x OPENAI_API_KEY \"$OPENAI_API_KEY\"" >> "$ENV_FILE"
+    fi
 else
     echo "Unsupported shell: $SHELL_NAME"
     exit 1
