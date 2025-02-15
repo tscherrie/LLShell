@@ -15,7 +15,7 @@ This script integrates OpenAI's GPT-4o into your command line, allowing it to:
 ### 1. Clone the Repository
 ```sh
 git clone https://github.com/tscherrie/LLShell.git
-cd llm-command-handler
+cd LLShell
 ```
 
 ### 2. Run the Installer
