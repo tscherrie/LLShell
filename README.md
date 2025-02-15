@@ -1,4 +1,4 @@
-# LLM Command Handler
+# LLShell
 
 This script integrates OpenAI's GPT-4o into your command line, allowing it to:
 - Auto-correct invalid commands.
@@ -14,7 +14,7 @@ This script integrates OpenAI's GPT-4o into your command line, allowing it to:
 
 ### 1. Clone the Repository
 ```sh
-git clone https://github.com/your-username/llm-command-handler.git
+git clone https://github.com/tscherrie/LLShell.git
 cd llm-command-handler
 ```
 
