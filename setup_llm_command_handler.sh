@@ -36,6 +36,36 @@ fi
 
 # Write LLM Command Handler (Universal Version)
 cat > "$ZSH_SCRIPT_PATH" << 'EOF'
+##############################
+# Global conversation context for LLM (resets each session)
+##############################
+if [ -z "$LLM_CONTEXT_INITIALIZED" ]; then
+    typeset -ga LLM_CONTEXT_ARRAY
+    LLM_CONTEXT_ARRAY=()
+    LLM_CONTEXT_INITIALIZED=1
+fi
+
+##############################
+# ZLE Hook: Prefill LBUFFER in Zsh
+##############################
+zle_llm_suggestion() {
+    if [ -f /tmp/llm_suggestion ]; then
+        local suggestion
+        suggestion=$(cat /tmp/llm_suggestion)
+        if [ -n "$suggestion" ]; then
+            LBUFFER="$suggestion"
+            zle reset-prompt
+        fi
+        rm -f /tmp/llm_suggestion
+    fi
+}
+zle -N zle_llm_suggestion
+autoload -Uz add-zle-hook-widget
+add-zle-hook-widget line-init zle_llm_suggestion
+
+##############################
+# Command-Not-Found Handler
+##############################
 command_not_found_handler() {
     echo "zsh: command not found: $1"
     echo "Asking LLM..."
@@ -52,7 +82,28 @@ command_not_found_handler() {
     fi
 
     local content
-    content=$(curl -sS --fail -X POST "https://api.openai.com/v1/chat/completions"         -H "Content-Type: application/json"         -H "Authorization: Bearer $OPENAI_API_KEY"         --data "{"model":"gpt-4o","temperature":0,"messages":[{"role":"system","content":"You are a command-line assistant. If the user prompt resembles an incorrect or malformed command, output only the corrected version with no explanation. If the user asks for a command, output only the command. If the user asks for an explanation, start with \"Message:\"."},{"role":"user","content":"$prompt"}]}"         | jq -r '.choices[0].message.content // empty')
+    content=$(curl -sS --fail -X POST "https://api.openai.com/v1/chat/completions" \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer $OPENAI_API_KEY" \
+        --data @- <<JSON
+{
+    "model": "gpt-4o",
+    "temperature": 0,
+    "messages": [
+        {
+            "role": "system",
+            "content": "You are a command-line assistant. Follow these rules strictly:\n\n1. If the user asks for a command, output only the command and nothing else.\n2. If the user enters a seemingly incorrect command, output only the corrected version of the command with no explanation or extra text.\n3. If the user asks for an explanation, prefix your response with \"Message:\".\n\nNever mix the three formats."
+        },
+        {
+            "role": "user",
+            "content": "$prompt"
+        }
+    ]
+}
+JSON
+    )
+
+    content=$(echo "$content" | jq -r '.choices[0].message.content // empty')
 
     if [[ "$content" == Message:* ]]; then
         echo ""
@@ -74,7 +125,26 @@ cat > "$FISH_SCRIPT_PATH" << 'EOF'
 function llm_command_not_found --on-event fish_command_not_found
     echo "fish: command not found: $argv"
     echo "Asking LLM..."
-    set response (curl -sS --fail -X POST "https://api.openai.com/v1/chat/completions"         -H "Content-Type: application/json"         -H "Authorization: Bearer $OPENAI_API_KEY"         --data "{"model":"gpt-4o","temperature":0,"messages":[{"role":"system","content":"You are a command-line assistant. If the user prompt resembles an incorrect or malformed command, output only the corrected version with no explanation. If the user asks for a command, output only the command. If the user asks for an explanation, start with \"Message:\"."},{"role":"user","content":"$argv"}]}"         | jq -r '.choices[0].message.content // empty')
+    set response (curl -sS --fail -X POST "https://api.openai.com/v1/chat/completions" \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer $OPENAI_API_KEY" \
+        --data @- <<JSON
+{
+    "model": "gpt-4o",
+    "temperature": 0,
+    "messages": [
+        {
+            "role": "system",
+            "content": "You are a command-line assistant. Follow these rules strictly:\n\n1. If the user asks for a command, output only the command and nothing else.\n2. If the user enters a seemingly incorrect command, output only the corrected version of the command with no explanation or extra text.\n3. If the user asks for an explanation, prefix your response with \"Message:\".\n\nNever mix the three formats."
+        },
+        {
+            "role": "user",
+            "content": "$argv"
+        }
+    ]
+}
+JSON
+    )
 
     if string match -q "Message:*" "$response"
         echo (string replace "Message: " "" "$response")
@@ -87,9 +157,13 @@ EOF
 echo "[✔] Command handler installed."
 
 if [[ "$SHELL_NAME" == "zsh" || "$SHELL_NAME" == "bash" ]]; then
-    echo "source $ZSH_SCRIPT_PATH" >> "$ENV_FILE"
+    if ! grep -q "source $ZSH_SCRIPT_PATH" "$ENV_FILE"; then
+        echo "source $ZSH_SCRIPT_PATH" >> "$ENV_FILE"
+    fi
 elif [[ "$SHELL_NAME" == "fish" ]]; then
-    echo "source $FISH_SCRIPT_PATH" >> "$ENV_FILE"
+    if ! grep -q "source $FISH_SCRIPT_PATH" "$ENV_FILE"; then
+        echo "source $FISH_SCRIPT_PATH" >> "$ENV_FILE"
+    fi
 fi
 
 exec "$SHELL"
