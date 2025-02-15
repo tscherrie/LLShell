@@ -4,6 +4,7 @@
 SHELL_NAME=$(basename "$SHELL")
 
 # Define script paths
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INSTALL_PATH="$HOME/.llm_command_handler.sh"
 FISH_SCRIPT_PATH="$HOME/.config/fish/functions/llm_command_handler.fish"
 
@@ -33,9 +34,9 @@ else
     exit 1
 fi
 
-# Download and install the actual script
-echo "[✔] Downloading LLM Command Handler..."
-curl -sS -o "$INSTALL_PATH" "https://github.com/tscherrie/LLShell/blob/main/llm_command_handler.sh"
+# Copy or symlink the LLM command handler from the same repo
+echo "[✔] Installing LLM Command Handler..."
+cp "$SCRIPT_DIR/llm_command_handler.sh" "$INSTALL_PATH"
 chmod +x "$INSTALL_PATH"
 
 # Add source to shell configs
